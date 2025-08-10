@@ -1,4 +1,4 @@
-from src.auxiliary_functions import convert_salary
+from src.extra_function import convert_salary
 
 
 class WorkVacancies:

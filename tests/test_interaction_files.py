@@ -3,9 +3,6 @@ from unittest.mock import mock_open, patch
 import json
 from src.interaction_files import work_with_json
 
-# Предполагается, что классы импортированы, например:
-# from your_module import work_with_json
-
 class TestWorkWithJson(unittest.TestCase):
     def setUp(self):
         self.filename = "test_vacancies.json"

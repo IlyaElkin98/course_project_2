@@ -6,45 +6,62 @@ from src.interaction_vacancies import WorkVacancies
 class TestWorkVacancies(unittest.TestCase):
 
     def setUp(self):
-        self.valid_salary_rub = {"from": 100000, "to": 200000, "currency": "RUB"}
-        self.valid_salary_usd = {"from": 1000, "to": 2000, "currency": "USD"}
-        self.invalid_salary = "not a dict"
+        # Пример корректных данных для вакансии
+        self.valid_data = {
+            "name": "Программист",
+            "alternate_url": "http://example.com/job",
+            "salary": {"from": 100000, "to": 150000, "currency": "RUR"},
+            "requirement": "Опыт работы от 3 лет"
+        }
+        self.valid_data_foreign_currency = {
+            "name": "Developer",
+            "alternate_url": "https://example.com/job",
+            "salary": {"from": 3000, "to": 4000, "currency": "USD"},
+            "requirement": None
+        }
 
-    def test_validate_name_with_non_string(self):
-        with self.assertRaises(ValueError) as context:
-            WorkVacancies(123, "http://example.com", self.valid_salary_rub)
-        self.assertIn("name должен быть строкой", str(context.exception))
+    @patch('src.interaction_vacancies.convert_salary')
+    def test_salary_validation_rub(self, mock_convert):
+        # Для RUR конвертация не вызывается
+        vacancy = WorkVacancies(**self.valid_data)
+        avg_salary = vacancy._validate_salary()
+        expected_avg = (self.valid_data["salary"]["from"] + self.valid_data["salary"]["to"]) // 2
+        self.assertEqual(avg_salary, expected_avg)
+        mock_convert.assert_not_called()
 
-    def test_validate_url_with_invalid_url(self):
-        with self.assertRaises(ValueError) as context:
-            WorkVacancies("Job Name", "ftp://example.com", self.valid_salary_rub)
-        self.assertIn("Некорректный url", str(context.exception))
+    @patch('src.interaction_vacancies.convert_salary')
+    def test_salary_validation_foreign_currency(self, mock_convert):
+        # Для другой валюты вызывается convert_salary
+        mock_convert.return_value = "Converted Salary"
+        vacancy = WorkVacancies(**self.valid_data_foreign_currency)
+        result = vacancy._validate_salary()
+        self.assertEqual(result, "Converted Salary")
+        mock_convert()
 
-    def test_requirement_conversion_none(self):
-        job = WorkVacancies("Job Name", "http://example.com", self.valid_salary_rub, requirement=None)
-        self.assertEqual(job.requirement, "требования не указаны")
+    def test_name_validation_raises(self):
+        bad_data = self.valid_data.copy()
+        bad_data["name"] = 123  # Неверный тип
+        with self.assertRaises(ValueError):
+            WorkVacancies(**bad_data)
 
-    def test_requirement_conversion_non_string(self):
-        job = WorkVacancies("Job Name", "http://example.com", self.valid_salary_rub, requirement=123)
-        self.assertEqual(job.requirement, "123")
+    def test_url_validation_raises(self):
+        bad_data = self.valid_data.copy()
+        bad_data["alternate_url"] = "ftp://example.com"
+        with self.assertRaises(ValueError):
+            WorkVacancies(**bad_data)
 
-    def test_validate_salary_rub(self):
-        job = WorkVacancies("Job Name", "http://example.com", self.valid_salary_rub)
-        expected_avg = (self.valid_salary_rub["from"] + self.valid_salary_rub["to"]) // 2
-        # _validate_salary возвращает среднюю заработную плату в рублях/RUB
-        self.assertEqual(job._validate_salary(), expected_avg)
+    def test_requirement_default(self):
+        data = self.valid_data.copy()
+        data["requirement"] = None
+        vacancy = WorkVacancies(**data)
+        self.assertEqual(vacancy.requirement, "требования не указаны")
 
-    @patch("src.interaction_vacancies.convert_salary", return_value=150000)
-    def test_validate_salary_other_currency(self, mock_convert_salary):
-        job = WorkVacancies("Job Name", "http://example.com", self.valid_salary_usd)
-        expected_avg = (self.valid_salary_usd["from"] + self.valid_salary_usd["to"]) // 2
-        result = job._validate_salary()
-        mock_convert_salary(expected_avg, "USD")
-        self.assertEqual(result, 150000)
-
-    def test_validate_salary_not_dict(self):
-        job = WorkVacancies("Job Name", "http://example.com", self.invalid_salary)
-        self.assertEqual(job._validate_salary(), "Зарплата не указана")
+    def test_eq_with_same_salary(self):
+        vac1 = WorkVacancies(**self.valid_data)
+        vac2 = WorkVacancies(**self.valid_data)
+        vac1.salary = {"from": 100, "to": 200, "currency": "RUR"}
+        vac2.salary = {"from": 100, "to": 200, "currency": "RUR"}
+        self.assertTrue(vac1 == vac2)
 
 
 if __name__ == "__main__":

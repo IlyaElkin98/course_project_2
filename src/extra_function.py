@@ -1,12 +1,10 @@
 import os
 
 import requests
-from dotenv import load_dotenv
 
 
 def convert_salary(convert_numb: int, currency: int) -> int:
     """Функция, которая конвертирует сумму транзакции в рубли."""
-    load_dotenv()
     api_key = os.getenv("API_KEY")
     header = {"apikey": api_key}
     amount = convert_numb

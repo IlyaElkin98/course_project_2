@@ -63,7 +63,7 @@ class work_with_json(WorkWithFile):
         vacancy_name = vacancy_dict.get("name")
         if not any(vac.get("name") == vacancy_name for vac in data):
             data.append(vacancy_dict)
-            with open(self.__filename, "w", encoding="utf-8") as f:
+            with open(self.__filename, "a", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
 
     def del_data(self, criterion_key: str, criterion_value: str):
